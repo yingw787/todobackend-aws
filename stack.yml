@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Todobackend Application
+
+Resources:
+    ApplicationCluster:
+        Type: AWS::ECS::Cluster
+        Properties:
+            ClusterName: todobackend-cluster
