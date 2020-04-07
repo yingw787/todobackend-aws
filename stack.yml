@@ -14,6 +14,55 @@ Parameters:
         Description: Target subnets for EC2 instances
 
 Resources:
+    ApplicationAutoscalingInstanceProfile:
+        Type: AWS::IAM::InstanceProfile
+        Properties:
+            Roles:
+                - Ref: ApplicationAutoscalingInstanceRole
+    ApplicationAutoscalingInstanceRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                -   ec2.amazonaws.com
+                        Action:
+                                -   sts:AssumeRole
+            Policies:
+                -   PolicyName: ECSContainerInstancePermissions
+                    PolicyDocument:
+                        Version: "2012-10-17"
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    -   ecs:RegisterContainerInstance
+                                    -   ecs:DeregisterContainerInstance
+                                    -   ecs:UpdateContainerInstancesState
+                                Resource: !Sub ${ApplicationCluster.Arn}
+                            -   Effect: ALlow
+                                Action:
+                                    -   ecs:DiscoverPollEndpoint
+                                    -   ecs:Submit*
+                                    -   ecs:Poll
+                                    -   ecs:StartTelemetrySession
+                                Resource: "*"
+                            -   Effect: Allow
+                                Action:
+                                    -   ecr:BatchCheckLayerAvailability
+                                    -   ecr:BatchGetImage
+                                    -   ecr:GetDownloadUrlForLayer
+                                    -   ecr:GetAuthorizationLayer
+                                Resource: "*"
+                            -   Effect: Allow
+                                Action:
+                                    -   logs:CreateLogGroup
+                                    -   logs:CreateLogStream
+                                    -   logs:PutLogEvents
+                                    -   logs:DescribeLogStreams
+                                Resource: !Sub arn:aws:logs:${AWS:Region}:${AWS:AccountId}:log-group:/${AWS::StackName}*
     ApplicationAutoscalingLaunchConfiguration:
         Type: AWS::AutoScaling::LaunchConfiguration
         Metadata:
@@ -65,6 +114,6 @@ Resources:
             DesiredCapacity: !Ref ApplicationDesiredCount
             VPCZoneIdentifier: !Ref ApplicationSubnets
             Tags:
-                - Key: Name
-                  Value: !Sub ${AWS::StackName}-ApplicationAutoscaling-instance
-                  PropagateAtLaunch: "true"
+                -   Key: Name
+                    Value: !Sub ${AWS::StackName}-ApplicationAutoscaling-instance
+                    PropagateAtLaunch: "true"
