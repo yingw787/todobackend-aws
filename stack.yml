@@ -23,8 +23,9 @@ Resources:
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     CreationPolicy:
-      Count: !Ref ApplicationDesiredCount
-      Timeout: PT15M
+      ResourceSignal:
+        Count: !Ref ApplicationDesiredCount
+        Timeout: PT15M
     Properties:
       DesiredCapacity: !Ref ApplicationDesiredCount
       LaunchConfigurationName: !Ref ApplicationAutoscalingLaunchConfiguration
@@ -65,7 +66,7 @@ Resources:
                   - "ecs:DeregisterContainerInstance"
                   - "ecs:UpdateContainerInstancesState"
                 Resource: !Sub ${ApplicationCluster.Arn}
-              - Effect: ALlow
+              - Effect: Allow
                 Action:
                   - "ecs:DiscoverPollEndpoint"
                   - "ecs:Submit*"
@@ -77,7 +78,7 @@ Resources:
                   - "ecr:BatchCheckLayerAvailability"
                   - "ecr:BatchGetImage"
                   - "ecr:GetDownloadUrlForLayer"
-                  - "ecr:GetAuthorizationLayer"
+                  - "ecr:GetAuthorizationToken"
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -96,7 +97,7 @@ Resources:
             "05_public_volume":
               command: mkdir -p /data/public
             "06_public_volume_permissions":
-              command: "chown R 1000:1000 /data/public"
+              command: "chown -R 1000:1000 /data/public"
             "10_first_run":
               command: sh firstrun.sh
               cwd: /home/ec2-user
@@ -113,7 +114,7 @@ Resources:
       SecurityGroups:
         - Ref: ApplicationAutoscalingSecurityGroup
       UserData: !Base64
-        "Fn::Sub": "#!/bin/bash\n/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} \\\n    --resource ApplicationAutoscalingLaunchConfiguration \\\n    --region ${AWS::Region}\n/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} \\\n    --resource ApplicationAutoscaling \\\n    --region ${AWS::Region}\n"
+        "Fn::Sub": "#!/bin/bash\n/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} \\\n  --resource ApplicationAutoscalingLaunchConfiguration \\\n  --region ${AWS::Region}\n/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} \\\n  --resource ApplicationAutoscaling \\\n  --region ${AWS::Region}\n"
 
   ApplicationAutoscalingSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
