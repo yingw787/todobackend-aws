@@ -88,7 +88,7 @@ Resources:
                                     -   logs:CreateLogStream
                                     -   logs:PutLogEvents
                                     -   logs:DescribeLogStreams
-                                Resource: !Sub arn:aws:logs:${AWS:Region}:${AWS:AccountId}:log-group:/${AWS::StackName}*
+                                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}*
     ApplicationAutoscalingLaunchConfiguration:
         Type: AWS::AutoScaling::LaunchConfiguration
         Metadata:
@@ -129,7 +129,7 @@ Resources:
         Properties:
             ClusterName: todobackend-cluster
     ApplicationAutoscaling:
-        Type: AWS::AutoScaling::
+        Type: AWS::AutoScaling::AutoScalingGroup
         CreationPolicy:
             Count: !Ref ApplicationDesiredCount
             Timeout: PT15M
