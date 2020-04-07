@@ -21,12 +21,12 @@ Resources:
         Type: AWS::EC2::SecurityGroup
         Properties:
             GroupDescription: !Sub ${AWS::StackName} Application Autoscaling Security Group
-            VpcID: !Ref VpcId
+            VpcId: !Ref VpcId
             SecurityGroupIngress:
                 -   IpProtocol: tcp
-                -   FromPort: 22
-                -   ToPort: 22
-                -   CidrIp: 0.0.0.0/0
+                    FromPort: 22
+                    ToPort: 22
+                    CidrIp: 0.0.0.0/0
             SecurityGroupEgress:
                 -   IpProtocol: udp
                     FromPort: 22
