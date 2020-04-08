@@ -208,35 +208,36 @@ Resources:
           Value: !Sub "${AWS::StackName}-alb"
 
   ApplicationLoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+    Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Application Load Balancer Security Group
-      VpcId: !Ref VpcId
       SecurityGroupIngress:
-        - IpProtocol: tcp
+        - CidrIp: "0.0.0.0/0"
           FromPort: 80
+          IpProtocol: tcp
           ToPort: 80
-          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value:
-            Fn::Sub: ${AWS::StackName}-alb-sg
-  ApplicationLoadBalancerToApplicationIngress:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      IpProtocol: tcp
-      FromPort: 32768
-      ToPort: 60999
-      GroupId: !Ref ApplicationAutoscalingSecurityGroup
-      SourceSecurityGroupId: !Ref ApplicationLoadBalancerSecurityGroup
+          Value: !Sub "${AWS::StackName}-alb-sg"
+      VpcId: !Ref VpcId
+
   ApplicationLoadBalancerToApplicationEgress:
-    Type: AWS::EC2::SecurityGroupEgress
+    Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
-      IpProtocol: tcp
-      FromPort: 32768
-      ToPort: 60999
-      GroupId: !Ref ApplicationLoadBalancerSecurityGroup
       DestinationSecurityGroupId: !Ref ApplicationAutoscalingSecurityGroup
+      FromPort: 32768
+      GroupId: !Ref ApplicationLoadBalancerSecurityGroup
+      IpProtocol: tcp
+      ToPort: 60999
+
+  ApplicationLoadBalancerToApplicationIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      FromPort: 32768
+      GroupId: !Ref ApplicationAutoscalingSecurityGroup
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref ApplicationLoadBalancerSecurityGroup
+      ToPort: 60999
 
   ApplicationToApplicationDatabaseEgress:
     Type: "AWS::EC2::SecurityGroupEgress"
