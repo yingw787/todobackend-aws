@@ -25,19 +25,6 @@ Parameters:
     Description: Target VPC
 
 Resources:
-  ApplicationLoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Scheme: internet-facing
-      Subnets: !Ref ApplicationSubnets
-      SecurityGroups:
-        - !Ref ApplicationLoadBalancerSecurityGroup
-      LoadBalancerAttributes:
-        - Key: idle_timeout.timeout_seconds
-          Value: 30
-      Tags:
-        - Key: Name
-          Value: !Sub ${AWS::StackName}-alb
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     CreationPolicy:
@@ -206,6 +193,20 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-db-subnet-group"
 
+  ApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: 30
+      Scheme: internet-facing
+      SecurityGroups:
+        - Ref: ApplicationLoadBalancerSecurityGroup
+      Subnets: !Ref ApplicationSubnets
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-alb"
+
   ApplicationToApplicationDatabaseEgress:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
@@ -225,6 +226,6 @@ Resources:
       ToPort: 3306
 
 Outputs:
-    PublicURL:
-        Description: Public DNS name of Application Load Balancer
-        Value: !Sub ${ApplicationLoadBalancer.DNSName}
+  PublicURL:
+    Description: Public DNS name of Application Load Balancer
+    Value: !Sub ${ApplicationLoadBalancer.DNSName}
