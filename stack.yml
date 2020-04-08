@@ -18,7 +18,7 @@ Parameters:
   DatabasePassword:
     Type: String
     Description: Database password
-    Noecho: "true"
+    NoEcho: "true"
 
   VpcId:
     Type: "AWS::EC2::VPC::Id"
@@ -31,7 +31,8 @@ Resources:
       Engine: MySQL
       EngineVersion: 5.7
       DBInstanceClass: db.t2.micro
-      AllocatedStorage: gp2
+      AllocatedStorage: 10
+      StorageType: gp2
       MasterUsername: todobackend
       MasterUserPassword: !Ref DatabasePassword
       DBName: todobackend
@@ -39,7 +40,7 @@ Resources:
         - !Ref ApplicationDatabaseSecurityGroup
       DBSubnetGroupName: !Ref ApplicationDatabaseSubnetGroup
       MultiAZ: "false"
-    AvailabilityZone: !Sub ${AWS::Region}a
+      AvailabilityZone: !Sub ${AWS::Region}a
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-db
