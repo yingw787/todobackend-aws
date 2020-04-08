@@ -43,6 +43,43 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-db
+  ApplicationDatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+        DBSubnetGroupDescription: Application Database Subnet Group
+        SubnetIds: !Ref ApplicationSubnets
+        Tags:
+          - Key: Name
+            Value: !Sub ${AWS::StackName}-db-subnet-group
+  ApplicationDatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName} Application Database Security Group
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 192.0.2.0/32
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-db-sg
+  ApplicationToApplicationDatabaseIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      GroupId: !Ref ApplicationDatabaseSecurityGroup
+      SourceSecurityGroupId: !Ref ApplicationAutoscalingSecurityGroup
+  ApplicationToApplicationDatabaseEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        GroupId: !Ref ApplicationAutoscalingSecurityGroup
+        DestinationSecurityGroupId: !Ref ApplicationDatabaseSecurityGroup
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     CreationPolicy:
