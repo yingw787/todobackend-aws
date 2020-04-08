@@ -223,3 +223,8 @@ Resources:
       IpProtocol: tcp
       SourceSecurityGroupId: !Ref ApplicationAutoscalingSecurityGroup
       ToPort: 3306
+
+Outputs:
+    PublicURL:
+        Description: Public DNS name of Application Load Balancer
+        Value: !Sub ${ApplicationLoadBalancer.DNSName}
