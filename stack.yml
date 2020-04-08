@@ -13,8 +13,8 @@ Parameters:
 
   ApplicationImageTag:
     Type: String
-    Description: Application Docker Image Tag
     Default: latest
+    Description: Application Docker Image Tag
 
   ApplicationSubnets:
     Type: "List<AWS::EC2::Subnet::Id>"
@@ -30,82 +30,6 @@ Parameters:
     Description: Target VPC
 
 Resources:
-  ApplicationTaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: todobackend
-      Volumes:
-        - Name: public
-          Host:
-            SourcePath: /data/public
-      ContainerDefinitions:
-        - Name: todobackend
-          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}
-          MemoryReservation: 395
-          Cpu: 245
-          MountPoints:
-            - SourceVolume: public
-              ContainerPath: /public
-          Environment:
-            - Name: DJANGO_SETTINGS_MODULE
-              Value: todobackend.settings_release
-            - Name: MYSQL_HOST
-              Value: !Sub ${ApplicationDatabase.Endpoint.Address}
-            - Name: MYSQL_USER
-              Value: todobackend
-            - Name: MYSQL_PASSWORD
-              Value: !Ref DatabasePassword
-            - Name: MYSQL_DATABASE
-              Value: todobackend
-            - Name: SECRET_KEY
-              Value: some-random-secret-should-be-here
-          Command:
-            - uwsgi
-            - --http=0.0.0.0:8000
-            - --module=todobackend.wsgi
-            - --master
-            - --die-on-term
-            - --processes=4
-            - --threads=2
-            - --check-static=/public
-          PortMappings:
-            - ContainerPort: 8000
-              HostPort: 0
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Sub /${AWS::StackName}/ecs/todobackend
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: docker
-        - Name: collectstatic
-          Essential: false
-          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}
-          MemoryReservation: 5
-          Cpu: 5
-          MountPoints:
-            - SourceVolume: public
-              ContainerPath: /public
-          Environment:
-            - Name: DJANGO_SETTINGS_MODULE
-              Value: todobackend.settings_release
-          Command:
-            - python3
-            - manage.py
-            - collectstatic
-            - --no-input
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Sub /${AWS::StackName}/ecs/todobackend
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: docker
-
-  ApplicationLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /${AWS::StackName}/ecs/todobackend
-      RetentionInDays: 7
-
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     CreationPolicy:
@@ -289,24 +213,14 @@ Resources:
           Value: !Sub "${AWS::StackName}-alb"
 
   ApplicationLoadBalancerHttpListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
-      Protocol: HTTP
-      Port: 80
       DefaultActions:
-        - TargetGroupArn: !Ref ApplicationServiceTargetGroup
-          Type: forward
-
-  ApplicationServiceTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
+        - Type: forward
+          TargetGroupArn: !Ref ApplicationServiceTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
       Protocol: HTTP
-      Port: 8000
-      VpcId: !Ref VpcId
-      TargetGroupAttributes:
-        - Key: deregistration_delay.timeout_seconds
-          Value: 30
 
   ApplicationLoadBalancerSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
@@ -339,6 +253,92 @@ Resources:
       IpProtocol: tcp
       SourceSecurityGroupId: !Ref ApplicationLoadBalancerSecurityGroup
       ToPort: 60999
+
+  ApplicationLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/${AWS::StackName}/ecs/todobackend"
+      RetentionInDays: 7
+
+  ApplicationServiceTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Port: 8000
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 30
+      VpcId: !Ref VpcId
+
+  ApplicationTaskDefinition:
+    Type: "AWS::ECS::TaskDefinition"
+    Properties:
+      ContainerDefinitions:
+        - Name: todobackend
+          Command:
+            - uwsgi
+            - "--http=0.0.0.0:8000"
+            - "--module=todobackend.wsgi"
+            - "--master"
+            - "--die-on-term"
+            - "--processes=4"
+            - "--threads=2"
+            - "--check-static=/public"
+          Cpu: 245
+          Environment:
+            - Name: DJANGO_SETTINGS_MODULE
+              Value: todobackend.settings_release
+            - Name: MYSQL_HOST
+              Value: !Sub ${ApplicationDatabase.Endpoint.Address}
+            - Name: MYSQL_USER
+              Value: todobackend
+            - Name: MYSQL_PASSWORD
+              Value: !Ref DatabasePassword
+            - Name: MYSQL_DATABASE
+              Value: todobackend
+            - Name: SECRET_KEY
+              Value: some-random-secret-should-be-here
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend"
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: docker
+          MemoryReservation: 395
+          MountPoints:
+            - ContainerPath: /public
+              SourceVolume: public
+          PortMappings:
+            - ContainerPort: 8000
+              HostPort: 0
+        - Name: collectstatic
+          Command:
+            - python3
+            - manage.py
+            - collectstatic
+            - "--no-input"
+          Cpu: 5
+          Environment:
+            - Name: DJANGO_SETTINGS_MODULE
+              Value: todobackend.settings_release
+          Essential: false
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend"
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: docker
+          MemoryReservation: 5
+          MountPoints:
+            - ContainerPath: /public
+              SourceVolume: public
+      Family: todobackend
+      Volumes:
+        - Name: public
+          Host:
+            SourcePath: /data/public
 
   ApplicationToApplicationDatabaseEgress:
     Type: "AWS::EC2::SecurityGroupEgress"
