@@ -25,6 +25,19 @@ Parameters:
     Description: Target VPC
 
 Resources:
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Subnets: !Ref ApplicationSubnets
+      SecurityGroups:
+        - !Ref ApplicationLoadBalancerSecurityGroup
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: 30
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-alb
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     CreationPolicy:
