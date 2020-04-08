@@ -207,6 +207,16 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-alb"
 
+  ApplicationLoadBalancerHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - TargetGroupArn: !Ref ApplicationServiceTargetGroup
+          Type: forward
+
   ApplicationLoadBalancerSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
