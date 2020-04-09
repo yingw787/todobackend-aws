@@ -4,23 +4,24 @@ Description: KMS Keys
 
 Resources:
   KmsKey:
-    Type: AWS::KMS::Key
+    Type: "AWS::KMS::Key"
     Properties:
       Description: Custom key for Secrets
       Enabled: true
       KeyPolicy:
-        Version: "2012-10-17"
         Id: key-policy
         Statement:
           - Sid: Allow root account access to key
             Effect: Allow
             Principal:
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
             Action:
-              - kms:*
+              - "kms:*"
             Resource: "*"
+        Version: "2012-10-17"
+
   KmsKeyAlias:
-    Type: AWS::KMS::Alias
+    Type: "AWS::KMS::Alias"
     Properties:
       AliasName: alias/secrets-key
       TargetKeyId: !Ref KmsKey
