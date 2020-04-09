@@ -83,7 +83,7 @@ Resources:
             except Exception as e:
                 print("A failure occurred with exception %s" % e)
                 cfnresponse.send(event, context, cfnresponse.FAILED, {})
-  ECSTaskRunnerRole:
+  EcsTaskRunnerRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
