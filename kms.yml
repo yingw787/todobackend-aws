@@ -20,7 +20,7 @@ Resources:
               - kms:*
             Resource: "*"
   KmsKeyAlias:
-    Type: AWS:KMS::Alias
+    Type: AWS::KMS::Alias
     Properties:
       AliasName: alias/secrets-key
       TargetKeyId: !Ref KmsKey
