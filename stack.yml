@@ -83,6 +83,38 @@ Resources:
             except Exception as e:
                 print("A failure occurred with exception %s" % e)
                 cfnresponse.send(event, context, cfnresponse.FAILED, {})
+  ECSTaskRunnerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: EcsTaskRunnerPermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: EcsTasks
+                Effect: Allow
+                Action:
+                  - ecs:DescribeTasks
+                  - ecs:ListTasks
+                  - ecs:RunTask
+                Resource: "*"
+                Condition:
+                  ArnEquals:
+                    ecs:cluster: !Sub ${ApplicationCluster.Arn}
+              - Sid: ManageLambdaLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub ${EcsTaskRunnerLogGroup.Arn}
 
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
