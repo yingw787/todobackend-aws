@@ -30,25 +30,6 @@ Parameters:
     Description: Target VPC
 
 Resources:
-  ApplicationService:
-    Type: AWS::ECS::Service
-    DependsOn:
-      - ApplicationAutoscaling
-      - ApplicationLogGroup
-      - ApplicationLoadBalancerHttpListener
-    Properties:
-      TaskDefinition: !Ref ApplicationTaskDefinition
-      Cluster: !Ref ApplicationCluster
-      DesiredCount: !Ref ApplicationDesiredCount
-      LoadBalancers:
-        - ContainerName: todobackend
-          ContainerPort: 8000
-          TargetGroupArn: !Ref ApplicationServiceTargetGroup
-      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS
-      DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 100
-
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     CreationPolicy:
@@ -278,6 +259,25 @@ Resources:
     Properties:
       LogGroupName: !Sub "/${AWS::StackName}/ecs/todobackend"
       RetentionInDays: 7
+
+  ApplicationService:
+    Type: "AWS::ECS::Service"
+    DependsOn:
+      - ApplicationAutoscaling
+      - ApplicationLogGroup
+      - ApplicationLoadBalancerHttpListener
+    Properties:
+      Cluster: !Ref ApplicationCluster
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: !Ref ApplicationDesiredCount
+      LoadBalancers:
+        - ContainerName: todobackend
+          ContainerPort: 8000
+          TargetGroupArn: !Ref ApplicationServiceTargetGroup
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"
+      TaskDefinition: !Ref ApplicationTaskDefinition
 
   ApplicationServiceTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
