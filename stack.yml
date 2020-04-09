@@ -154,6 +154,16 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: docker
 
+  MigrateTask:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn:
+      - ApplicationAutoscaling
+      - ApplicationDatabase
+    Properties:
+      ServiceToken: !Sub ${EcsTaskRunner.Arn}
+      Cluster: !Ref ApplicationCluster
+      TaskDefinition: !Ref MigrateTaskDefinition
+
   ApplicationAutoscaling:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     CreationPolicy:
@@ -390,6 +400,7 @@ Resources:
       - ApplicationAutoscaling
       - ApplicationLogGroup
       - ApplicationLoadBalancerHttpListener
+      - MigrateTask
     Properties:
       Cluster: !Ref ApplicationCluster
       DeploymentConfiguration:
