@@ -285,120 +285,9 @@ Resources:
           Value: 30
       VpcId: !Ref VpcId
 
-  SecretsManager:
-    Type: AWS::Lambda::Function
-    DependsOn:
-      - SecretsManagerLogGroup
-    Properties:
-      FunctionName: !Sub ${AWS::StackName}-secretsManager
-      Description: !Sub ${AWS::StackName} Secrets Manager
-      Handler: index.handler
-      MemorySize: 128
-      Runtime: python3.6
-      Timeout: 300
-      Role: !Sub ${SecretsManagerRole.Arn}
-      Code:
-        ZipFile: |
-          import cfnresponse, json, sys, os
-          import boto3
-
-          client = boto3.client('secretsmanager')
-
-          def handler(event, context):
-            sys.stdout = sys.__stdout__
-            try:
-              print("Received event %s" % event)
-              if event['RequestType'] == 'Delete':
-                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event['PhysicalResourceId'])
-                return
-              secret = client.get_secret_value(
-                SecretId=event['ResourceProperties']['SecretId'],
-              )
-              credentials = json.loads(secret['SecretString'])
-              # Suppress logging output to ensure credential values are kept secure
-              with open(os.devnull, "w") as devnull:
-                sys.stdout = devnull
-                cfnresponse.send(
-                  event,
-                  context,
-                  cfnresponse.SUCCESS,
-                  credentials, # This dictionary will be exposed to CloudFormation resources
-                  secret['VersionId'], # Physical ID of the custom resource
-                  noEcho=True
-                )
-            except Exception as e:
-              print("A failure occurred with exception %s" % e)
-              cfnresponse.send(event, context, cfnresponse.FAILED, {})
-
-  SecretsManagerRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Policies:
-        - PolicyName: SecretsManagerPermissions
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Sid: GetSecrets
-                Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend/*
-              - Sid: DecryptSecrets
-                Effect: Allow
-                Action:
-                  - kms:Decrypt
-                Resource: !ImportValue secrets-key
-              - Sid: ManageLambdaLogs
-                Effect: Allow
-                Action:
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: !Sub ${SecretsManagerLogGroup.Arn}
-  SecretsManagerLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-secretsManager
-      RetentionInDays: 7
-
-  ApplicationTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-         - Effect: Allow
-           Principal:
-            Service: ecs-tasks.amazonaws.com
-           Action:
-            - sts:AssumeRole
-      Policies:
-        - PolicyName: SecretsManagerPermissions
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Sid: GetSecrets
-                Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend/*
-              - Sid: DecryptSecrets
-                Effect: Allow
-                Action:
-                  - kms:Decrypt
-                Resource: !ImportValue secrets-key
-
   ApplicationTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
-      TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
       ContainerDefinitions:
         - Name: todobackend
           Command:
@@ -423,7 +312,7 @@ Resources:
             - Name: SECRETS
               Value: todobackend/secrets
             - Name: AWS_DEFAULT_REGION
-              Value: !Ref AWS::Region
+              Value: !Ref "AWS::Region"
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
           LogConfiguration:
             LogDriver: awslogs
@@ -461,10 +350,38 @@ Resources:
             - ContainerPath: /public
               SourceVolume: public
       Family: todobackend
+      TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
       Volumes:
         - Name: public
           Host:
             SourcePath: /data/public
+
+  ApplicationTaskRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: SecretsManagerPermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: GetSecrets
+                Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend/*"
+              - Sid: DecryptSecrets
+                Effect: Allow
+                Action:
+                  - "kms:Decrypt"
+                Resource: !ImportValue secrets-key
 
   ApplicationToApplicationDatabaseEgress:
     Type: "AWS::EC2::SecurityGroupEgress"
@@ -548,16 +465,9 @@ Resources:
       ServiceToken: !Sub ${EcsTaskRunner.Arn}
       TaskDefinition: !Ref MigrateTaskDefinition
 
-  Secrets:
-    Type: AWS::CloudFormation::CustomResource
-    Properties:
-      ServiceToken: !Sub ${SecretsManager.Arn}
-      SecretId: todobackend/credentials
-
   MigrateTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
-      TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
       ContainerDefinitions:
         - Name: migrate
           Command:
@@ -578,7 +488,7 @@ Resources:
             - Name: SECRETS
               Value: todobackend/credentials
             - Name: AWS_DEFAULT_REGION
-              Value: !Ref AWS::Region
+              Value: !Ref "AWS::Region"
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
           LogConfiguration:
             LogDriver: awslogs
@@ -588,6 +498,67 @@ Resources:
               awslogs-stream-prefix: docker
           MemoryReservation: 5
       Family: todobackend-migrate
+      TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
+
+  Secrets:
+    Type: "AWS::CloudFormation::CustomResource"
+    Properties:
+      SecretId: todobackend/credentials
+      ServiceToken: !Sub ${SecretsManager.Arn}
+
+  SecretsManager:
+    Type: "AWS::Lambda::Function"
+    DependsOn:
+      - SecretsManagerLogGroup
+    Properties:
+      Code:
+        ZipFile: "import cfnresponse, json, sys, os\nimport boto3\n\nclient = boto3.client('secretsmanager')\n\ndef handler(event, context):\n  sys.stdout = sys.__stdout__\n  try:\n    print(\"Received event %s\" % event)\n    if event['RequestType'] == 'Delete':\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event['PhysicalResourceId'])\n      return\n    secret = client.get_secret_value(\n      SecretId=event['ResourceProperties']['SecretId'],\n    )\n    credentials = json.loads(secret['SecretString'])\n    # Suppress logging output to ensure credential values are kept secure\n    with open(os.devnull, \"w\") as devnull:\n      sys.stdout = devnull\n      cfnresponse.send(\n        event,\n        context,\n        cfnresponse.SUCCESS,\n        credentials, # This dictionary will be exposed to CloudFormation resources\n        secret['VersionId'], # Physical ID of the custom resource\n        noEcho=True\n      )\n  except Exception as e:\n    print(\"A failure occurred with exception %s\" % e)\n    cfnresponse.send(event, context, cfnresponse.FAILED, {})\n"
+      Description: !Sub "${AWS::StackName} Secrets Manager"
+      FunctionName: !Sub "${AWS::StackName}-secretsManager"
+      Handler: index.handler
+      MemorySize: 128
+      Role: !Sub ${SecretsManagerRole.Arn}
+      Runtime: python3.6
+      Timeout: 300
+
+  SecretsManagerLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-secretsManager"
+      RetentionInDays: 7
+
+  SecretsManagerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: SecretsManagerPermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: GetSecrets
+                Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend/*"
+              - Sid: DecryptSecrets
+                Effect: Allow
+                Action:
+                  - "kms:Decrypt"
+                Resource: !ImportValue secrets-key
+              - Sid: ManageLambdaLogs
+                Effect: Allow
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: !Sub ${SecretsManagerLogGroup.Arn}
 
 Outputs:
   PublicURL:
