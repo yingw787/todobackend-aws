@@ -330,6 +330,44 @@ Resources:
               print("A failure occurred with exception %s" % e)
               cfnresponse.send(event, context, cfnresponse.FAILED, {})
 
+  SecretsManagerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda:amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: SecretsManagerPermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: GetSecrets
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend/*
+              - Sid: DecryptSecrets
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: !ImportValue secrets-key
+              - Sid: ManageLambdaLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub ${SecretsManagerLogGroup.Arn}
+  SecretsManagerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-secretsManager
+      RetentionInDays: 7
+
   ApplicationTaskRole:
     Type: AWS::IAM::Role
     Properties:
