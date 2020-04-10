@@ -20,11 +20,6 @@ Parameters:
     Type: "List<AWS::EC2::Subnet::Id>"
     Description: Target subnets for EC2 instances
 
-  DatabasePassword:
-    Type: String
-    Description: Database password
-    NoEcho: "true"
-
   VpcId:
     Type: "AWS::EC2::VPC::Id"
     Description: Target VPC
@@ -320,6 +315,7 @@ Resources:
   ApplicationTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
+      TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
       ContainerDefinitions:
         - Name: todobackend
           Command:
@@ -339,12 +335,12 @@ Resources:
               Value: !Sub ${ApplicationDatabase.Endpoint.Address}
             - Name: MYSQL_USER
               Value: todobackend
-            - Name: MYSQL_PASSWORD
-              Value: !Ref DatabasePassword
             - Name: MYSQL_DATABASE
               Value: todobackend
-            - Name: SECRET_KEY
-              Value: some-random-secret-should-be-here
+            - Name: SECRETS
+              Value: todobackend/secrets
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
           LogConfiguration:
             LogDriver: awslogs
@@ -472,6 +468,7 @@ Resources:
   MigrateTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
+      TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
       ContainerDefinitions:
         - Name: migrate
           Command:
@@ -487,10 +484,12 @@ Resources:
               Value: !Sub ${ApplicationDatabase.Endpoint.Address}
             - Name: MYSQL_USER
               Value: todobackend
-            - Name: MYSQL_PASSWORD
-              Value: !Ref DatabasePassword
             - Name: MYSQL_DATABASE
               Value: todobackend
+            - Name: SECRETS
+              Value: todobackend/credentials
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
           LogConfiguration:
             LogDriver: awslogs
