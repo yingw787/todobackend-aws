@@ -285,6 +285,51 @@ Resources:
           Value: 30
       VpcId: !Ref VpcId
 
+  SecretsManager:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - SecretsManagerLogGroup
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-secretsManager
+      Description: !Sub ${AWS::StackName} Secrets Manager
+      Handler: index.handler
+      MemorySize: 128
+      Runtime: python3.6
+      Timeout: 300
+      Role: !Sub ${SecretsManagerRole.Arn}
+      Code:
+        ZipFile: |
+          import cfnresponse, json, sys, os
+          import boto3
+
+          client = boto3.client('secretsmanager')
+
+          def handler(event, context):
+            sys.stdout = sys.__stdout__
+            try:
+              print("Received event %s" % event)
+              if event['RequestType'] == 'Delete':
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event['PhysicalResourceId'])
+                return
+              secret = client.get_secret_value(
+                SecretId=event['ResourceProperties']['SecretId'],
+              )
+              credentials = json.loads(secret['SecretString'])
+              # Suppress logging output to ensure credential values are kept secure
+              with open(os.devnull, "w") as devnull:
+                sys.stdout = devnull
+                cfnresponse.send(
+                  event,
+                  context,
+                  cfnresponse.SUCCESS,
+                  credentials, # This dictionary will be exposed to CloudFormation resources
+                  secret['VersionId'], # Physical ID of the custom resource
+                  noEcho=True
+                )
+            except Exception as e:
+              print("A failure occurred with exception %s" % e)
+              cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
   ApplicationTaskRole:
     Type: AWS::IAM::Role
     Properties:
