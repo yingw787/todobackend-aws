@@ -160,7 +160,7 @@ Resources:
       DBSubnetGroupName: !Ref ApplicationDatabaseSubnetGroup
       Engine: MySQL
       EngineVersion: 5.7
-      MasterUserPassword: !Ref DatabasePassword
+      MasterUserPassword: !Sub ${Secrets.MYSQL_PASSWORD}
       MasterUsername: todobackend
       MultiAZ: "false"
       StorageType: gp2
@@ -547,6 +547,12 @@ Resources:
       Cluster: !Ref ApplicationCluster
       ServiceToken: !Sub ${EcsTaskRunner.Arn}
       TaskDefinition: !Ref MigrateTaskDefinition
+
+  Secrets:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !Sub ${SecretsManager.Arn}
+      SecretId: todobackend/credentials
 
   MigrateTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
