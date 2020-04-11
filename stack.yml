@@ -407,7 +407,7 @@ Resources:
       - EcsTaskRunnerLogGroup
     Properties:
       Code:
-        ZipFile: "import cfnresponse\nimport boto3\n\nclient = boto3.client('ecs')\n\ndef handler(event, context):\n  try:\n    print(\"Received event %s\" % event)\n    if event['RequestType'] == 'Delete':\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event['PhysicalResourceId'])\n      return\n    tasks = client.run_task(\n      cluster=event['ResourceProperties']['Cluster'],\n      taskDefinition=event['ResourceProperties']['TaskDefinition'],\n      overrides=event['ResourceProperties'].get('Overrides', {}),\n      count=1,\n      startedBy=event['RequestId']\n    )\n    task = tasks['tasks'][0]['taskArn']\n    print(\"Started ECS task %s\" % task)\n    waiter = client.get_waiter('tasks_stopped')\n    waiter.wait(\n      cluster=event['ResourceProperties']['Cluster'],\n      tasks=[task],\n    )\n    result = client.describe_tasks(\n      cluster=event['ResourceProperties']['Cluster'],\n      tasks=[task]\n    )\n    exitCode = result['tasks'][0]['containers'][0]['exitCode']\n    if exitCode > 0:\n      print(\"ECS task %s failed with exit code %s\" % (task, exitCode))\n      cfnresponse.send(event, context, cfnresponse.FAILED, {}, task)\n    else:\n      print(\"ECS task %s completed successfully\" % task)\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, task)\n  except Exception as e:\n      print(\"A failure occurred with exception %s\" % e)\n      cfnresponse.send(event, context, cfnresponse.FAILED, {})\n"
+        ZipFile: "import cfnresponse\nimport boto3\n\nclient = boto3.client('ecs')\n\ndef handler(event, context):\n  try:\n    print(\"Received event %s\" % event)\n    if event['RequestType'] == 'Delete':\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event['PhysicalResourceId'])\n      return\n    tasks = client.run_task(\n      cluster=event['ResourceProperties']['Cluster'],\n      taskDefinition=event['ResourceProperties']['TaskDefinition'],\n      overrides=event['ResourceProperties'].get('Overrides',{}),\n      count=1,\n      startedBy=event['RequestId']\n    )\n    task = tasks['tasks'][0]['taskArn']\n    print(\"Started ECS task %s\" % task)\n    waiter = client.get_waiter('tasks_stopped')\n    waiter.wait(\n      cluster=event['ResourceProperties']['Cluster'],\n      tasks=[task],\n    )\n    result = client.describe_tasks(\n      cluster=event['ResourceProperties']['Cluster'],\n      tasks=[task]\n    )\n    exitCode = result['tasks'][0]['containers'][0]['exitCode']\n    if exitCode > 0:\n      print(\"ECS task %s failed with exit code %s\" % (task, exitCode))\n      cfnresponse.send(event, context, cfnresponse.FAILED, {}, task)\n    else:\n      print(\"ECS task %s completed successfully\" % task)\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, task)\n  except Exception as e:\n    print(\"A failure occurred with exception %s\" % e)\n    cfnresponse.send(event, context, cfnresponse.FAILED, {})\n"
       Description: !Sub "${AWS::StackName} ECS Task Runner"
       FunctionName: !Sub "${AWS::StackName}-ecsTasks"
       Handler: index.handler
@@ -513,12 +513,12 @@ Resources:
     Properties:
       Code:
         ZipFile: "import cfnresponse, json, sys, os\nimport boto3\n\nclient = boto3.client('secretsmanager')\n\ndef handler(event, context):\n  sys.stdout = sys.__stdout__\n  try:\n    print(\"Received event %s\" % event)\n    if event['RequestType'] == 'Delete':\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event['PhysicalResourceId'])\n      return\n    secret = client.get_secret_value(\n      SecretId=event['ResourceProperties']['SecretId'],\n    )\n    credentials = json.loads(secret['SecretString'])\n    # Suppress logging output to ensure credential values are kept secure\n    with open(os.devnull, \"w\") as devnull:\n      sys.stdout = devnull\n      cfnresponse.send(\n        event,\n        context,\n        cfnresponse.SUCCESS,\n        credentials, # This dictionary will be exposed to CloudFormation resources\n        secret['VersionId'], # Physical ID of the custom resource\n        noEcho=True\n      )\n  except Exception as e:\n    print(\"A failure occurred with exception %s\" % e)\n    cfnresponse.send(event, context, cfnresponse.FAILED, {})\n"
-      Description: !Sub "\\\"${AWS::StackName} Secrets Manager\\\"\\n\""
+      Description: !Sub "${AWS::StackName} Secrets Manager"
       FunctionName: !Sub "${AWS::StackName}-secretsManager"
       Handler: index.handler
       MemorySize: 128
       Role: !Sub ${SecretsManagerRole.Arn}
-      Runtime: python3.6
+      Runtime: python3.8
       Timeout: 300
 
   SecretsManagerLogGroup:
