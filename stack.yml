@@ -512,13 +512,13 @@ Resources:
       - SecretsManagerLogGroup
     Properties:
       Code:
-        ZipFile: "import cfnresponse, json, sys, os\nimport boto3\n\nclient = boto3.client('secretsmanager')\n\ndef handler(event, context):\n  sys.stdout = sys.__stdout__\n  try:\n    print(\"Received event %s\" % event)\n    if event['RequestType'] == 'Delete':\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event['PhysicalResourceId'])\n      return\n    secret = client.get_secret_value(\n      SecretId=event['ResourceProperties']['SecretId'],\n    )\n    credentials = json.loads(secret['SecretString'])\n    # Suppress logging output to ensure credential values are kept secure\n    with open(os.devnull, \"w\") as devnull:\n      sys.stdout = devnull\n      cfnresponse.send(\n        event,\n        context,\n        cfnresponse.SUCCESS,\n        credentials, # This dictionary will be exposed to CloudFormation resources\n        secret['VersionId'], # Physical ID of the custom resource\n        noEcho=True\n      )\n  except Exception as e:\n    print(\"A failure occurred with exception %s\" % e)\n    cfnresponse.send(event, context, cfnresponse.FAILED, {})\n"
+        ZipFile: "import warnings\n\nwith warnings.catch_warnings():\n  warnings.filterwarnings(\"ignore\",category=DeprecationWarning)\n  import md5, sha\n\nimport cfnresponse, json, sys, os\nimport boto3\n\nclient = boto3.client('secretsmanager')\n\ndef handler(event, context):\n  sys.stdout = sys.__stdout__\n  try:\n    print(\"Received event %s\" % event)\n    if event['RequestType'] == 'Delete':\n      cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, event  ['PhysicalResourceId'])\n      return\n    secret = client.get_secret_value(\n      SecretId=event['ResourceProperties']['SecretId'],\n    )\n    credentials = json.loads(secret['SecretString'])\n    # Suppress logging output to ensure credential values are kept   secure\n    with open(os.devnull, \"w\") as devnull:\n      sys.stdout = devnull\n      cfnresponse.send(\n        event,\n        context,\n        cfnresponse.SUCCESS,\n        credentials, # This dictionary will be exposed to   CloudFormation resources\n        secret['VersionId'], # Physical ID of the custom resource\n        noEcho=True\n      )\n  except Exception as e:\n    print(\"A failure occurred with exception %s\" % e)\n    cfnresponse.send(event, context, cfnresponse.FAILED, {})\n"
       Description: !Sub "${AWS::StackName} Secrets Manager"
       FunctionName: !Sub "${AWS::StackName}-secretsManager"
       Handler: index.handler
       MemorySize: 128
       Role: !Sub ${SecretsManagerRole.Arn}
-      Runtime: python3.8
+      Runtime: python3.7
       Timeout: 300
 
   SecretsManagerLogGroup:
