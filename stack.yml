@@ -332,7 +332,7 @@ Resources:
           FromPort: 53
           ToPort: 53
           CidrIp: 0.0.0.0/0
-        - IpProtocol: 443
+        - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
@@ -346,6 +346,7 @@ Resources:
         - Key: deregistration_delay.timeout_seconds
           Value: 30
       VpcId: !Ref VpcId
+      TargetType: ip
 
   ApplicationTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
