@@ -368,7 +368,6 @@ Resources:
               SourceVolume: public
           PortMappings:
             - ContainerPort: 8000
-              HostPort: 0
         - Name: collectstatic
           Command:
             - python3
@@ -392,6 +391,7 @@ Resources:
             - ContainerPath: /public
               SourceVolume: public
       Family: todobackend
+      NetworkMode: awsvpc
       Volumes:
         - Name: public
           Host:
