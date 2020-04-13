@@ -276,20 +276,20 @@ Resources:
   ApplicationLoadBalancerToApplicationEgress:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
-      DestinationSecurityGroupId: !Ref ApplicationAutoscalingSecurityGroup
-      FromPort: 32768
+      DestinationSecurityGroupId: !Ref ApplicationSecurityGroup
+      FromPort: 8000
       GroupId: !Ref ApplicationLoadBalancerSecurityGroup
       IpProtocol: tcp
-      ToPort: 60999
+      ToPort: 8000
 
   ApplicationLoadBalancerToApplicationIngress:
     Type: "AWS::EC2::SecurityGroupIngress"
     Properties:
-      FromPort: 32768
-      GroupId: !Ref ApplicationAutoscalingSecurityGroup
+      FromPort: 8000
+      GroupId: !Ref ApplicationSecurityGroup
       IpProtocol: tcp
       SourceSecurityGroupId: !Ref ApplicationLoadBalancerSecurityGroup
-      ToPort: 60999
+      ToPort: 8000
 
   ApplicationLogGroup:
     Type: "AWS::Logs::LogGroup"
@@ -321,6 +321,21 @@ Resources:
           ContainerPort: 8000
           TargetGroupArn: !Ref ApplicationServiceTargetGroup
       TaskDefinition: !Ref ApplicationTaskDefinition
+
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName} Application Security Group
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: udp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: 443
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
 
   ApplicationServiceTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
@@ -405,7 +420,7 @@ Resources:
   ApplicationToApplicationDatabaseEgress:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
-      DestinationSecurityGroupId: !Ref ApplicationDatabaseSecurityGroup
+      DestinationSecurityGroupId: !Ref ApplicationSecurityGroup
       FromPort: 3306
       GroupId: !Ref ApplicationAutoscalingSecurityGroup
       IpProtocol: tcp
@@ -417,7 +432,7 @@ Resources:
       FromPort: 3306
       GroupId: !Ref ApplicationDatabaseSecurityGroup
       IpProtocol: tcp
-      SourceSecurityGroupId: !Ref ApplicationAutoscalingSecurityGroup
+      SourceSecurityGroupId: !Ref ApplicationSecurityGroup
       ToPort: 3306
 
   EcsTaskRunner:
