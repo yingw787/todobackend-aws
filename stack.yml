@@ -148,7 +148,7 @@ Resources:
   ApplicationCluster:
     Type: "AWS::ECS::Cluster"
     Properties:
-      ClusterName: todobackend5-cluster
+      ClusterName: todobackend6-cluster
 
   ApplicationDatabase:
     Type: "AWS::RDS::DBInstance"
@@ -156,12 +156,12 @@ Resources:
       AllocatedStorage: 10
       AvailabilityZone: !Sub "${AWS::Region}a"
       DBInstanceClass: db.t2.micro
-      DBName: todobackend5
+      DBName: todobackend6
       DBSubnetGroupName: !Ref ApplicationDatabaseSubnetGroup
       Engine: MySQL
       EngineVersion: 5.7
       MasterUserPassword: !Sub ${Secrets.MYSQL_PASSWORD}
-      MasterUsername: todobackend5
+      MasterUsername: todobackend6
       MultiAZ: "false"
       StorageType: gp2
       Tags:
@@ -252,7 +252,7 @@ Resources:
   ApplicationLogGroup:
     Type: "AWS::Logs::LogGroup"
     Properties:
-      LogGroupName: !Sub "/${AWS::StackName}/ecs/todobackend5"
+      LogGroupName: !Sub "/${AWS::StackName}/ecs/todobackend6"
       RetentionInDays: 7
 
   ApplicationService:
@@ -269,7 +269,7 @@ Resources:
         MinimumHealthyPercent: 100
       DesiredCount: !Ref ApplicationDesiredCount
       LoadBalancers:
-        - ContainerName: todobackend5
+        - ContainerName: todobackend6
           ContainerPort: 8000
           TargetGroupArn: !Ref ApplicationServiceTargetGroup
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"
@@ -289,7 +289,7 @@ Resources:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
       ContainerDefinitions:
-        - Name: todobackend5
+        - Name: todobackend6
           Command:
             - uwsgi
             - "--http=0.0.0.0:8000"
@@ -306,18 +306,18 @@ Resources:
             - Name: MYSQL_HOST
               Value: !Sub ${ApplicationDatabase.Endpoint.Address}
             - Name: MYSQL_USER
-              Value: todobackend5
+              Value: todobackend6
             - Name: MYSQL_DATABASE
-              Value: todobackend5
+              Value: todobackend6
             - Name: SECRETS
-              Value: todobackend5/credentials
+              Value: todobackend6/credentials
             - Name: AWS_DEFAULT_REGION
               Value: !Ref "AWS::Region"
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend5"
+              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend6"
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: docker
           MemoryReservation: 395
@@ -342,14 +342,14 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend5"
+              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend6"
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: docker
           MemoryReservation: 5
           MountPoints:
             - ContainerPath: /public
               SourceVolume: public
-      Family: todobackend5
+      Family: todobackend6
       TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
       Volumes:
         - Name: public
@@ -376,7 +376,7 @@ Resources:
                 Effect: Allow
                 Action:
                   - "secretsmanager:GetSecretValue"
-                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend5/*"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend6/*"
               - Sid: DecryptSecrets
                 Effect: Allow
                 Action:
@@ -482,28 +482,28 @@ Resources:
             - Name: MYSQL_HOST
               Value: !Sub ${ApplicationDatabase.Endpoint.Address}
             - Name: MYSQL_USER
-              Value: todobackend5
+              Value: todobackend6
             - Name: MYSQL_DATABASE
-              Value: todobackend5
+              Value: todobackend6
             - Name: SECRETS
-              Value: todobackend5/credentials
+              Value: todobackend6/credentials
             - Name: AWS_DEFAULT_REGION
               Value: !Ref "AWS::Region"
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/docker-in-aws/todobackend:${ApplicationImageTag}"
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend5"
+              awslogs-group: !Sub "/${AWS::StackName}/ecs/todobackend6"
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: docker
           MemoryReservation: 5
-      Family: todobackend5-migrate
+      Family: todobackend6-migrate
       TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
 
   Secrets:
     Type: "AWS::CloudFormation::CustomResource"
     Properties:
-      SecretId: todobackend5/credentials
+      SecretId: todobackend6/credentials
       ServiceToken: !Sub ${SecretsManager.Arn}
 
   SecretsManager:
@@ -547,7 +547,7 @@ Resources:
                 Effect: Allow
                 Action:
                   - "secretsmanager:GetSecretValue"
-                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend5/*"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:todobackend6/*"
               - Sid: DecryptSecrets
                 Effect: Allow
                 Action:
