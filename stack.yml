@@ -501,10 +501,12 @@ Resources:
       TaskRoleArn: !Sub ${ApplicationTaskRole.Arn}
 
   Secrets:
-    Type: "AWS::CloudFormation::CustomResource"
+    Type: "AWS::SecretsManager::Secret"
     Properties:
-      SecretId: todobackend6/credentials
-      ServiceToken: !Sub ${SecretsManager.Arn}
+      Name: todobackend6/credentials
+      Description: Todobackend Credentials
+      # Not recommended to store passwords in version control in plain text
+      SecretString: '{"SECRET_KEY": "IS1B<gn4AtccWV@gipfHVRHTZ|,IZR,*L9&uk[_&1`A[6<oi(Y", "MYSQL_PASSWORD": "some-super-secret-password"}'
 
   SecretsManager:
     Type: "AWS::Lambda::Function"
