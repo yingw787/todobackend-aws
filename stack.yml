@@ -150,6 +150,23 @@ Resources:
           ToPort: 22
       VpcId: !Ref VpcId
 
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}a
+      CidrBlock: 172.31.96.0/20
+      VpcId: !Ref VpcId
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
   ApplicationCluster:
     Type: "AWS::ECS::Cluster"
     Properties:
