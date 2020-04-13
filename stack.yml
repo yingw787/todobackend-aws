@@ -170,7 +170,7 @@ Resources:
   NatGateway:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !Sub ${ElasticIP.AllocationIP}
+      AllocationId: !Sub ${ElasticIP.AllocationId}
       SubnetId:
         Fn::Select:
           - 0
